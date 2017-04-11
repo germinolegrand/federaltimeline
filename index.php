@@ -95,7 +95,11 @@ html {
     padding: 0.1em 0.2em;
 }
 
-.files-flex > button {
+.files-flex > form {
+	padding: 0;
+}
+
+.files-flex button, .files-flex input {
 	padding: 0;
 	background-color: white;
 	color: black;
@@ -124,7 +128,7 @@ a {
 						<a href="#"><i class="fa fa-file" aria-hidden="true"></i> CR SF tel</a>
 					</div><div class="file">
 						<a href="#"><i class="fa fa-file" aria-hidden="true"></i> CDD </a>
-					</div><button onclick="onButtonAddFile(this)"><i class="fa fa-plus"></i></button>
+					</div><form><input type="file" style="display: none" /><button onclick="onButtonAddFile(this)"><i class="fa fa-plus"></i></button></form>
 				</div>
 			</div>
 		</div>
@@ -132,13 +136,29 @@ a {
 </div>
 
 <script type="text/javascript">
-function appendFile(date, instance, file) {
+function searchDateInstance(date, instance) {
+	return document.querySelector('#timeline .date-instance[data-date="'+date+'"][data-instance="'+instance+'"]');
+}
+
+function searchDateInstanceBefore(date) {
+	var dateInstanceArray = document.querySelectorAll("#timeline .date-instance");
+	for (var i = 0; i < dateInstanceArray.length; i++) {
+		if(dateInstanceArray[i].dataset.date <= date){
+			return dateInstanceArray[i];
+		}
+	}
+	return null;
+}
+
+function createDateInstance(date, instance) {
 	var dateInstance = document.createElement("div");
 	dateInstance.classList.add("date-instance");
+	dateInstance.dataset.date = date;
+	dateInstance.dataset.instance = instance;
 	{
 		var dateElem = document.createElement("div");
 		dateElem.classList.add("date");
-		dateElem.innerHTML = date.toLocaleDateString();
+		dateElem.innerHTML = (new Date(parseInt(date))).toLocaleDateString();
 		dateInstance.append(dateElem);
 		var instanceElem = document.createElement("div");
 		instanceElem.classList.add("instance");
@@ -147,26 +167,50 @@ function appendFile(date, instance, file) {
 		var filesElem = document.createElement("div");
 		filesElem.classList.add("files");
 		{
-			var filesFlexElem = document.createElement("div");
+			filesFlexElem = document.createElement("div");
 			filesFlexElem.classList.add("files-flex");
-			filesFlexElem.innerHTML = '<button onclick="onButtonAddFile(this)"><i class="fa fa-plus"></i></button>';
-			{
-				var fileElem = document.createElement("div");
-				fileElem.classList.add("files");
-				fileElem.innerHTML = file;
-				filesFlexElem.prepend(fileElem);
-			}
+			filesFlexElem.innerHTML = '<input type="file" style="display: none" /><button onclick="onButtonAddFile(this)"><i class="fa fa-plus"></i></button>';
 			filesElem.append(filesFlexElem);
 		}
 		dateInstance.append(filesElem);
 	}
-	document.querySelector("#timeline").append(dateInstance);
+	return dateInstance;
+}
+
+function appendFile(date, instance, file) {
+	var dateInstance = searchDateInstance(date, instance);
+	if(dateInstance == null){
+		dateInstance = createDateInstance(date, instance);
+		var diBefore = searchDateInstanceBefore(date);
+		if(diBefore != null){
+			diBefore.before(dateInstance);
+		} else {
+			document.querySelector("#timeline").append(dateInstance);
+		}
+	}
+	var filesFlexElem = dateInstance.querySelector('.files-flex');
+	// append the file
+	var fileElem = document.createElement("div");
+	fileElem.classList.add("file");
+	fileElem.innerHTML = '<a href="#"><i class="fa fa-file" aria-hidden="true"></i> '+file+'</a>';
+	filesFlexElem.prepend(fileElem);
 }
 
 function onButtonAddFile(button) {
 	var dateInstance = button.parentElement.parentElement.parentElement;
-	appendFile(new Date(dateInstance.querySelector(".date").innerHTML), dateInstance.querySelector(".instance").innerHTML.trim(), "Yololo");
+	button.previousElementSibling.addEventListener('change', function(){
+		if(this.value == ""){
+			return;
+		}
+		console.log("change:"+this.value);
+		appendFile(dateInstance.dataset.date, dateInstance.dataset.instance, this.value);
+		this.value = "";
+	});
+	button.previousElementSibling.click();
+	
 }
+
+appendFile(Date.now(), "Secrétariat Fédéral", "Trololo");
 </script>
 </body>
 </html>
