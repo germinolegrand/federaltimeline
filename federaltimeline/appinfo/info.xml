@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>federaltimeline</id>
+    <name>Federal Timeline</name>
+    <summary>Offers a timeline for federal documents</summary>
+    <description><![CDATA[Offers a timeline for federal documents]]></description>
+    <licence>agpl</licence>
+    <author mail="germinolegrand@gmail.com" >Germinolegrand</author>
+    <version>0.0.1</version>
+    <namespace>FederalTimeline</namespace>
+    <category>files</category>
+    <category>organization</category>
+    <bugs>https://google.com/</bugs>
+    <dependencies>
+        <owncloud min-version="9.2"/>
+        <nextcloud min-version="11" max-version="11"/>
+    </dependencies>
+</info>
