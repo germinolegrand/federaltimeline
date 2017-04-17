@@ -47,7 +47,7 @@ function createDateInstance(date, instance) {
 	return dateInstance;
 }
 
-function appendFile(date, instance, file) {
+function appendFile(date, instance, fileName, fileId, fileDdl) {
 	var dateInstance = searchDateInstance(date, instance);
 	if(dateInstance == null){
 		dateInstance = createDateInstance(date, instance);
@@ -62,7 +62,8 @@ function appendFile(date, instance, file) {
 	// append the file
 	var fileElem = document.createElement("div");
 	fileElem.classList.add("file");
-	fileElem.innerHTML = '<a href="#"><i class="fa fa-file" aria-hidden="true"></i> '+file+'</a>';
+	fileElem.dataset.fileid = fileId;
+	fileElem.innerHTML = '<a href="'+fileDdl+'"><i class="fa fa-file" aria-hidden="true"></i> '+fileName+'</a>';
 	filesFlexElem.prepend(fileElem);
 }
 
@@ -73,7 +74,21 @@ function onButtonAddFile(button) {
 			return;
 		}
 		console.log("change:"+this.value);
-		appendFile(dateInstance.dataset.date, dateInstance.dataset.instance, this.value);
+		var fd = new FormData();
+		fd.append("file0", this.files[0]);
+		fd.append("date", dateInstance.dataset.date/1000);
+		fd.append("instance", dateInstance.dataset.instance);
+		fd.append("name", this.value);
+		console.log(fd);
+		var filename = this.value;
+		$.ajax('api/1.0/timeline', {
+			type: 'POST',
+			processData: false,
+			contentType: false,
+			data: fd
+		}).done(function(data, textStatus, jqXHR) {
+			appendFile(dateInstance.dataset.date, dateInstance.dataset.instance, filename, data['id'], data['ddl']);
+		});
 		this.value = "";
 	});
 	button.previousElementSibling.click();
@@ -81,11 +96,10 @@ function onButtonAddFile(button) {
 }
 
 $().ready(function() {
-	appendFile(Date.now(), "Secrétariat Fédéral", "Trololo");
 	$.ajax('api/1.0/timeline').done(function(data, textStatus, jqXHR) {
 		console.log(data);
 		for (var i = 0; i < data.length; i++) {
-			appendFile(data[i]['di_date'], data[i]['di_instance'], data[i]['name']);
+			appendFile(data[i]['di_date']*1000, data[i]['di_instance'], data[i]['name'], data[i]['id'], data[i]['ddl']);
 		}
 	}).fail(function(data, textStatus, jqXHR) {
 		console.log(textStatus);

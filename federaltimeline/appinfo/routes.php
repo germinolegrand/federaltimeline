@@ -12,5 +12,6 @@ return [
 	   ['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 	   ['name' => 'page#do_echo', 'url' => '/echo', 'verb' => 'POST'],
 	   ['name' => 'timeline_api#index', 'url' => '/api/1.0/timeline', 'verb' => 'GET'],
+	   ['name' => 'timeline_api#upload_file', 'url' => '/api/1.0/timeline', 'verb' => 'POST'],
     ]
 ];
