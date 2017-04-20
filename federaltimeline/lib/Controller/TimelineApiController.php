@@ -5,6 +5,7 @@ use \DateTime;
 use OCP\IRequest;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\ApiController;
 
 class TimelineApiController extends ApiController {
@@ -88,12 +89,23 @@ class TimelineApiController extends ApiController {
 		}
 		$this->systemTagObjectMapper->assignTags($nfile->getId(), 'files', $tagIds);
 
-		//var_dump($nfile->getStorage()->getDirectDownload($nfile->getInternalPath()));
-
 		return [
-			'id' => $nfile->getId(),
-			'ddl' => $nfile->getStorage()->getDirectDownload($nfile->getInternalPath())
+			'id' => $nfile->getId()
 		];
+	}
+
+	/**
+	 * @param int $fileId
+	 */
+	public function downloadFile($fileId)
+	{
+		$files = $this->userFolder->getById($fileId);
+		//TODO check permissions
+		if(count($files)){
+			return new DataDownloadResponse($files[0]->getContent(), $files[0]->getName(), $files[0]->getMimetype());
+		}
+
+		return new JSONResponse("", \OCP\AppFramework\Http::STATUS_NOT_FOUND);
 	}
 
 }

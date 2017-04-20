@@ -63,8 +63,59 @@ function appendFile(date, instance, fileName, fileId, fileDdl) {
 	var fileElem = document.createElement("div");
 	fileElem.classList.add("file");
 	fileElem.dataset.fileid = fileId;
-	fileElem.innerHTML = '<a href="'+fileDdl+'"><i class="fa fa-file" aria-hidden="true"></i> '+fileName+'</a>';
+	fileElem.innerHTML = '<a href="#"><i class="fa fa-file" aria-hidden="true"></i> '+fileName+'</a>';
+	$(fileElem).on('click', function() {
+		getTimelineFileDownload(fileId);
+	});
 	filesFlexElem.prepend(fileElem);
+}
+
+/*
+* @param FormData fd
+*/
+function postTimelineFileUpload(fd) {
+	$.ajax('api/1.0/file', {
+		type: 'POST',
+		processData: false,
+		contentType: false,
+		data: fd
+	}).done(function(data, textStatus, jqXHR) {
+		appendFile(fd.get('date')*1000, fd.get('instance'), fd.get('name'), data['id'], data['ddl']);
+	});
+}
+
+/*
+* @param int fileId
+*/
+function getTimelineFileDownload(fileId) {
+	//window.location="api/1.0/file?fileId="+fileId;
+	// $.ajax('api/1.0/file', {
+	// 	data: {
+	// 		fileId: fileId
+	// 	}
+	// }).done(function(data, textStatus, jqXHR) {
+	// 	console.log(data);
+	// });
+	var req = new XMLHttpRequest();
+	req.open("GET", "api/1.0/file?fileId="+fileId, true);
+	req.responseType = "blob";
+	req.setRequestHeader('requesttoken', oc_requesttoken);
+
+	req.onload = function (event) {
+		var blob = req.response;
+		console.log(blob.size);
+		var link=document.createElement('a');
+		document.body.appendChild(link);
+		link.href=window.URL.createObjectURL(blob);
+		var filename = '';
+		var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        var matches = filenameRegex.exec(req.getResponseHeader('Content-Disposition'));
+        if (matches !== null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+		link.download = filename;
+		link.click();
+	};
+
+	req.send();
 }
 
 function onButtonAddFile(button) {
@@ -76,19 +127,12 @@ function onButtonAddFile(button) {
 		console.log("change:"+this.value);
 		var fd = new FormData();
 		fd.append("file0", this.files[0]);
-		fd.append("date", dateInstance.dataset.date/1000);
+		fd.append("date", Math.floor(dateInstance.dataset.date/1000));
 		fd.append("instance", dateInstance.dataset.instance);
 		fd.append("name", this.value);
 		console.log(fd);
 		var filename = this.value;
-		$.ajax('api/1.0/timeline', {
-			type: 'POST',
-			processData: false,
-			contentType: false,
-			data: fd
-		}).done(function(data, textStatus, jqXHR) {
-			appendFile(dateInstance.dataset.date, dateInstance.dataset.instance, filename, data['id'], data['ddl']);
-		});
+		postTimelineFileUpload(fd, dateInstance.dataset.date, dateInstance.dataset.instance, filename);
 		this.value = "";
 	});
 	button.previousElementSibling.click();
@@ -103,7 +147,13 @@ $().ready(function() {
 		}
 	}).fail(function(data, textStatus, jqXHR) {
 		console.log(textStatus);
-	}).always(function(data, textStatus, jqXHR) {
-		
+	})
+
+	$('#tlUpload').on('submit', function(e) {
+		e.preventDefault();
+		var fd = new FormData(this);
+		fd.set('date', Math.floor(Date.parse(fd.get('date').replace(/([0-9]+)\/([0-9]+)/,'$2/$1'))/1000));
+		fd.set('name', $('#tlUpload input[type="file"]')[0].value);
+		postTimelineFileUpload(fd);
 	});
 });
