@@ -12,6 +12,23 @@ function searchDateInstanceBefore(date) {
 	return null;
 }
 
+function filterInstance(instance) {
+	var regex;
+	try{
+		regex = new RegExp(instance);
+	} catch(e){
+		return;
+	}
+	var dateInstanceArray = document.querySelectorAll('#timeline .date-instance');
+	for (var i = 0; i < dateInstanceArray.length; i++) {
+		if(instance == '' || regex.test(dateInstanceArray[i].dataset.instance)){
+			dateInstanceArray[i].style.display = '';
+		} else {
+			dateInstanceArray[i].style.display = 'none';
+		}
+	}
+}
+
 function createDateInstance(date, instance) {
 	var dateInstance = document.createElement("div");
 	dateInstance.classList.add("date-instance");
@@ -88,14 +105,6 @@ function postTimelineFileUpload(fd) {
 * @param int fileId
 */
 function getTimelineFileDownload(fileId) {
-	//window.location="api/1.0/file?fileId="+fileId;
-	// $.ajax('api/1.0/file', {
-	// 	data: {
-	// 		fileId: fileId
-	// 	}
-	// }).done(function(data, textStatus, jqXHR) {
-	// 	console.log(data);
-	// });
 	var req = new XMLHttpRequest();
 	req.open("GET", "api/1.0/file?fileId="+fileId, true);
 	req.responseType = "blob";
@@ -103,7 +112,6 @@ function getTimelineFileDownload(fileId) {
 
 	req.onload = function (event) {
 		var blob = req.response;
-		console.log(blob.size);
 		var link=document.createElement('a');
 		document.body.appendChild(link);
 		link.href=window.URL.createObjectURL(blob);
@@ -124,13 +132,11 @@ function onButtonAddFile(button) {
 		if(this.value == ""){
 			return;
 		}
-		console.log("change:"+this.value);
 		var fd = new FormData();
 		fd.append("file0", this.files[0]);
 		fd.append("date", Math.floor(dateInstance.dataset.date/1000));
 		fd.append("instance", dateInstance.dataset.instance);
 		fd.append("name", this.value);
-		console.log(fd);
 		var filename = this.value;
 		postTimelineFileUpload(fd, dateInstance.dataset.date, dateInstance.dataset.instance, filename);
 		this.value = "";
@@ -145,9 +151,7 @@ $().ready(function() {
 		for (var i = 0; i < data.length; i++) {
 			appendFile(data[i]['di_date']*1000, data[i]['di_instance'], data[i]['name'], data[i]['id'], data[i]['ddl']);
 		}
-	}).fail(function(data, textStatus, jqXHR) {
-		console.log(textStatus);
-	})
+	});
 
 	$('#tlUpload').on('submit', function(e) {
 		e.preventDefault();
@@ -156,4 +160,9 @@ $().ready(function() {
 		fd.set('name', $('#tlUpload input[type="file"]')[0].value);
 		postTimelineFileUpload(fd);
 	});
+
+	document.querySelector('#instanceFilter').addEventListener('input', function() {
+		filterInstance(this.value);
+	});
+
 });
