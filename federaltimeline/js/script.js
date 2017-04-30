@@ -12,21 +12,18 @@ function searchDateInstanceBefore(date) {
 	return null;
 }
 
-function filterInstance(instance) {
-	var regex;
-	try{
-		regex = new RegExp(instance);
-	} catch(e){
-		return;
-	}
-	var dateInstanceArray = document.querySelectorAll('#timeline .date-instance');
-	for (var i = 0; i < dateInstanceArray.length; i++) {
-		if(instance == '' || regex.test(dateInstanceArray[i].dataset.instance)){
-			dateInstanceArray[i].style.display = '';
-		} else {
-			dateInstanceArray[i].style.display = 'none';
-		}
-	}
+/*
+* @param String date
+*/
+function convertDateToView(date) {
+	return (new Date(parseInt(date))).toLocaleDateString("fr-FR");
+}
+
+/*
+* @param String date
+*/
+function convertDateFromView(date) {
+	return Math.floor(Date.parse(date.replace(/([0-9]+)\/([0-9]+)\/([0-9]+)/,'$3-$2-$1T00:00:00Z'))/1000);
 }
 
 function createDateInstance(date, instance) {
@@ -37,18 +34,21 @@ function createDateInstance(date, instance) {
 	{
 		var dateElem = document.createElement("div");
 		dateElem.classList.add("date");
-		dateElem.textContent = (new Date(parseInt(date))).toLocaleDateString();
+		dateElem.textContent = convertDateToView(date);
 		dateInstance.append(dateElem);
 		var instanceElem = document.createElement("div");
 		instanceElem.classList.add("instance");
 		instanceElem.textContent = instance;
+		instanceElem.addEventListener('click', function() {
+			filterByDateInstance(dateInstance.classList.contains('filtered') ? '' : instance);
+		});
 		dateInstance.append(instanceElem);
 		var filesElem = document.createElement("div");
 		filesElem.classList.add("files");
 		{
 			filesFlexElem = document.createElement("div");
 			filesFlexElem.classList.add("files-flex");
-			filesFlexElem.innerHTML = '<input type="file" style="display: none" />';
+			filesFlexElem.innerHTML = '<input type="file" multiple style="display: none" />';
 			{
 				var buttonAdd = document.createElement("button");
 				buttonAdd.classList.add("icon-add");
@@ -64,7 +64,7 @@ function createDateInstance(date, instance) {
 	return dateInstance;
 }
 
-function appendFile(date, instance, fileName, fileId, fileDdl) {
+function appendFile(date, instance, fileName, fileId) {
 	var dateInstance = searchDateInstance(date, instance);
 	if(dateInstance == null){
 		dateInstance = createDateInstance(date, instance);
@@ -80,11 +80,84 @@ function appendFile(date, instance, fileName, fileId, fileDdl) {
 	var fileElem = document.createElement("div");
 	fileElem.classList.add("file");
 	fileElem.dataset.fileid = fileId;
-	fileElem.innerHTML = '<a href="#"><i class="fa fa-file" aria-hidden="true"></i> '+fileName+'</a>';
-	$(fileElem).on('click', function() {
+	fileElem.innerHTML = '<a href="#"><i class="icon-file" aria-hidden="true"></i>'+fileName+'</a>';
+	fileElem.addEventListener('click', function() {
 		getTimelineFileDownload(fileId);
 	});
 	filesFlexElem.prepend(fileElem);
+	// update input
+	appendInputInstanceListOption(instance);
+}
+
+function appendUntaggedFile(date, instance, fileName, fileId) {
+	var untaggedFile = document.createElement('form');
+	untaggedFile.classList.add("untagged-file");
+	untaggedFile.dataset.fileid = fileId;
+	untaggedFile.innerHTML = '<input type="text" pattern="(0[1-9]|1[0-9]|2[0-9]|3[01]).(0[1-9]|1[012]).[0-9]{4}" name="date" placeholder="DD/MM/YYYY" required />'
+		+ '<input type="text" name="instance" list="inputInstanceList" placeholder="Instance" required />'
+		+ '<a href="#" class="file"><i class="icon-file" aria-hidden="true"></i>'+fileName+'</a>'
+		+ '<input class="icon-checkmark" type="submit" name="submit" value="" />';
+	untaggedFile.querySelector('a').addEventListener('click', function() {
+		getTimelineFileDownload(fileId);
+	});
+	untaggedFile.addEventListener('submit', function(e) {
+		e.preventDefault();
+		var form = this;
+		var fd = new FormData;
+		fd.set('fileId', fileId);
+		fd.set('date', convertDateFromView(form.querySelector('input[name="date"]').value));
+		fd.set('instance', form.querySelector('input[name="instance"]').value);
+		postTimelineFileTags(fd, function() {
+			appendFile(fd.get('date')*1000, fd.get('instance'), fileName, fileId);
+			form.remove();
+			updateUntaggedCount();
+		});
+	});
+	document.querySelector("#untagged-list").append(untaggedFile);
+}
+
+function appendInputInstanceListOption(instance) {
+	if(document.querySelector('#inputInstanceList > option[value="'+instance+'"]')){
+		return;
+	}
+	var inputInstanceList = document.querySelector('#inputInstanceList');
+	var option = document.createElement('option');
+	option.value = instance;
+	inputInstanceList.append(option);
+}
+
+function filterByDateInstance(filterExp) {
+	var regex;
+	try{
+		regex = new RegExp(filterExp);
+	} catch(e){
+		return;
+	}
+	var dateInstanceArray = document.querySelectorAll('#timeline .date-instance');
+	for (var i = 0; i < dateInstanceArray.length; i++) {
+		var date = dateInstanceArray[i].dataset.date;
+		date = (new Date(parseInt(date))).toLocaleDateString();
+		if(filterExp == '' || regex.test(date) || regex.test(dateInstanceArray[i].dataset.instance)){
+			dateInstanceArray[i].style.display = '';
+			dateInstanceArray[i].classList.toggle('filtered', filterExp != '');
+		} else {
+			dateInstanceArray[i].style.display = 'none';
+		}
+	}
+}
+
+/*
+* @param FormData fd
+* @param Function (doneCallback)
+* @param Function (failCallback)
+*/
+function postTimelineFileTags(fd, doneCallback, failCallback) {
+	$.ajax('api/1.0/file/tags', {
+		type: 'POST',
+		processData: false,
+		contentType: false,
+		data: fd
+	}).done(doneCallback).fail(failCallback);
 }
 
 /*
@@ -97,7 +170,9 @@ function postTimelineFileUpload(fd) {
 		contentType: false,
 		data: fd
 	}).done(function(data, textStatus, jqXHR) {
-		appendFile(fd.get('date')*1000, fd.get('instance'), fd.get('name'), data['id'], data['ddl']);
+		for (var i = 0; i < data.length; i++) {
+			appendFile(fd.get('date')*1000, fd.get('instance'), data[i]['name'], data[i]['id']);
+		}
 	});
 }
 
@@ -133,36 +208,56 @@ function onButtonAddFile(button) {
 			return;
 		}
 		var fd = new FormData();
-		fd.append("file0", this.files[0]);
+		for (var i = 0; i < this.files.length; i++) {
+			fd.append("file[]", this.files[i]);
+		}
 		fd.append("date", Math.floor(dateInstance.dataset.date/1000));
 		fd.append("instance", dateInstance.dataset.instance);
-		fd.append("name", this.value);
-		var filename = this.value;
-		postTimelineFileUpload(fd, dateInstance.dataset.date, dateInstance.dataset.instance, filename);
+		postTimelineFileUpload(fd);
 		this.value = "";
 	});
 	button.previousElementSibling.click();
 	
 }
 
+function updateUntaggedCount() {
+	var untaggedCount = document.querySelectorAll('#untagged-list .untagged-file').length;
+	document.querySelector('.untagged-count').textContent = untaggedCount;
+	if(untaggedCount == 0){
+		document.querySelector('.show-untagged').setAttribute('disabled');
+	} else {
+		document.querySelector('.show-untagged').removeAttribute('disabled');
+	}
+}
+
 $().ready(function() {
 	$.ajax('api/1.0/timeline').done(function(data, textStatus, jqXHR) {
-		console.log(data);
-		for (var i = 0; i < data.length; i++) {
-			appendFile(data[i]['di_date']*1000, data[i]['di_instance'], data[i]['name'], data[i]['id'], data[i]['ddl']);
+		var dateInstances = data['dateInstances'];
+		for (var i = 0; i < dateInstances.length; i++) {
+			appendFile(dateInstances[i]['di_date']*1000, dateInstances[i]['di_instance'], dateInstances[i]['name'], dateInstances[i]['id']);
 		}
+		var untaggedFiles = data['untaggedFiles'];
+		for (var i = 0; i < untaggedFiles.length; i++) {
+			appendUntaggedFile(untaggedFiles[i]['di_date']*1000, untaggedFiles[i]['di_instance'], untaggedFiles[i]['name'], untaggedFiles[i]['id']);
+		}
+		updateUntaggedCount();
 	});
 
 	$('#tlUpload').on('submit', function(e) {
 		e.preventDefault();
 		var fd = new FormData(this);
-		fd.set('date', Math.floor(Date.parse(fd.get('date').replace(/([0-9]+)\/([0-9]+)/,'$2/$1'))/1000));
+		fd.set('date', convertDateFromView(fd.get('date')));
 		fd.set('name', $('#tlUpload input[type="file"]')[0].value);
+		var files = $('#tlUpload input[type="file"]')[0].files;
 		postTimelineFileUpload(fd);
 	});
 
-	document.querySelector('#instanceFilter').addEventListener('input', function() {
-		filterInstance(this.value);
+	document.querySelector('#instance-filter').addEventListener('input', function() {
+		filterByDateInstance(this.value);
+	});
+
+	document.querySelector('.show-untagged').addEventListener('click', function() {
+		document.querySelector('#untagged-list').classList.toggle('show');
 	});
 
 });

@@ -1,10 +1,4 @@
 <ul>
-	<li><a href="#">First level entry</a></li>
-	<li>
-		<a href="#">First level container</a>
-		<ul>
-			<li><a href="#">Second level entry</a></li>
-			<li><a href="#">Second level entry</a></li>
-		</ul>
-	</li>
+	<li><input type="text" id="instance-filter" placeholder="Filtrer..." /></li>
+	<li><button class="show-untagged">Fichiers à étiqueter (<span class="untagged-count"></span>)</button></li>
 </ul>

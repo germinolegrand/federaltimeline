@@ -32,7 +32,8 @@ class TimelineApiController extends ApiController {
 		}
 		$tlobjects = $this->systemTagObjectMapper->getObjectIdsForTags($tlTag->getId(), 'files');
 		$tagIds = $this->systemTagObjectMapper->getTagIdsForObjects($tlobjects, 'files');
-		$dateinstances = [];
+		$dateInstances = [];
+		$untaggedFiles = [];
 		foreach ($tlobjects as $tlo) {
 			$di = [];
 			foreach ($this->systemTagManager->getTagsByIds($tagIds[$tlo]) as $tag) {
@@ -51,26 +52,35 @@ class TimelineApiController extends ApiController {
 				$di['id'] = $file->getId();
 				$di['name'] = $file->getName();
 				$di['mimetype'] = $file->getMimetype();
-				$di['ddl'] = $file->getStorage()->getDirectDownload($file->getInternalPath());
 			}
-			$dateinstances[] = $di;
+			if($di['di_date'] && $di['di_instance']){
+				$dateInstances[] = $di;
+			} else {
+				$untaggedFiles[] = $di;
+			}
 		}
-		return new JSONResponse($dateinstances, count($dateinstances) > 0 ? \OCP\AppFramework\Http::STATUS_OK : \OCP\AppFramework\Http::STATUS_NO_CONTENT);
+		return [
+			'dateInstances' => $dateInstances,
+			'untaggedFiles' => $untaggedFiles,
+		];
 	}
 
 	/**
 	 * @param $date
 	 * @param $instance
-	 * @param $name
 	 */
-	public function uploadFile($date, $instance, $name)
+	public function uploadFile($date, $instance)
 	{
-		$upFile = $this->request->getUploadedFile('file0');
-		$name = $this->userFolder->getNonExistingName($name);
-		$nfile = $this->userFolder->newFile($name);
-		$nfile->putContent(file_get_contents($upFile['tmp_name']));
+		$upFile = $this->request->getUploadedFile('file');
+		if(!is_array($upFile['name'])){
+			$upFile['name'] = [$upFile['name']];
+			$upFile['type'] = [$upFile['type']];
+			$upFile['tmp_name'] = [$upFile['tmp_name']];
+			$upFile['size'] = [$upFile['size']];
+			$upFile['error'] = [$upFile['error']];
+		}
 		$date = date('d/m/Y', $date);
-
+		// Find or create $tagIds
 		$tagIds = [];
 		try{
 			$tagIds['timeline'] = $this->systemTagManager->getTag('timeline', true, true)->getId();
@@ -87,11 +97,21 @@ class TimelineApiController extends ApiController {
 		} catch(\OCP\SystemTag\TagNotFoundException $e) {
 			$tagIds['tl:instance'] = $this->systemTagManager->createTag('tl:'.$instance, true, true)->getId();
 		}
-		$this->systemTagObjectMapper->assignTags($nfile->getId(), 'files', $tagIds);
+		// Create files
+		$ret = [];
+		for ($i=0; $i < count($upFile['name']); $i++) {
+			$name = $this->userFolder->getNonExistingName($upFile['name'][$i]);
+			$nfile = $this->userFolder->newFile($name);
+			$nfile->putContent(file_get_contents($upFile['tmp_name'][$i]));
+			
+			$this->systemTagObjectMapper->assignTags($nfile->getId(), 'files', $tagIds);
 
-		return [
-			'id' => $nfile->getId()
-		];
+			$ret[] = [
+				'id' => $nfile->getId(),
+				'name' => $nfile->getName()
+			];
+		}
+		return $ret;
 	}
 
 	/**
@@ -108,4 +128,39 @@ class TimelineApiController extends ApiController {
 		return new JSONResponse("", \OCP\AppFramework\Http::STATUS_NOT_FOUND);
 	}
 
+	/**
+	 * @param int $fileId
+	 * @param $date
+	 * @param $instance
+	 */
+	public function tagFile($fileId, $date, $instance)
+	{
+		$files = $this->userFolder->getById($fileId);
+		if(count($files) == 0){
+			return new JSONResponse("", \OCP\AppFramework\Http::STATUS_NOT_FOUND);
+		}
+
+		$date = date('d/m/Y', $date);
+		// Find or create $tagIds
+		$tagIds = [];
+		try{
+			$tagIds['timeline'] = $this->systemTagManager->getTag('timeline', true, true)->getId();
+		} catch(\OCP\SystemTag\TagNotFoundException $e) {
+			$tagIds['timeline'] = $this->systemTagManager->createTag('timeline', true, true)->getId();
+		}
+		try{
+			$tagIds['tl:date'] = $this->systemTagManager->getTag('tl:'.$date, true, true)->getId();
+		} catch(\OCP\SystemTag\TagNotFoundException $e) {
+			$tagIds['tl:date'] = $this->systemTagManager->createTag('tl:'.$date, true, true)->getId();
+		}
+		try{
+			$tagIds['tl:instance'] = $this->systemTagManager->getTag('tl:'.$instance, true, true)->getId();
+		} catch(\OCP\SystemTag\TagNotFoundException $e) {
+			$tagIds['tl:instance'] = $this->systemTagManager->createTag('tl:'.$instance, true, true)->getId();
+		}
+
+		$this->systemTagObjectMapper->assignTags($fileId, 'files', $tagIds);
+
+		return [];
+	}
 }
