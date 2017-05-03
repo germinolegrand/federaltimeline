@@ -34,6 +34,7 @@ class TimelineApiController extends ApiController {
 		$tagIds = $this->systemTagObjectMapper->getTagIdsForObjects($tlobjects, 'files');
 		$dateInstances = [];
 		$untaggedFiles = [];
+		$uploadFolder = '';
 		foreach ($tlobjects as $tlo) {
 			$di = [];
 			foreach ($this->systemTagManager->getTagsByIds($tagIds[$tlo]) as $tag) {
@@ -54,6 +55,7 @@ class TimelineApiController extends ApiController {
 					$di['id'] = $file->getId();
 					$di['name'] = $file->getName();
 					$di['mimetype'] = $file->getMimetype();
+					$uploadFolder = $file->getParent()->getInternalPath();
 				}
 				if($di['di_date'] && $di['di_instance']){
 					$dateInstances[] = $di;
@@ -62,9 +64,13 @@ class TimelineApiController extends ApiController {
 				}
 			}
 		}
+		$uploadFolder = explode('/', $uploadFolder);
+		array_shift($uploadFolder);
+		$uploadFolder = implode('/', $uploadFolder);
 		return [
 			'dateInstances' => $dateInstances,
 			'untaggedFiles' => $untaggedFiles,
+			'uploadFolder' => $uploadFolder,
 		];
 	}
 
@@ -72,8 +78,9 @@ class TimelineApiController extends ApiController {
 	 * @NoAdminRequired
 	 * @param $date
 	 * @param $instance
+	 * @param $uploadFolder
 	 */
-	public function uploadFile($date, $instance)
+	public function uploadFile($date, $instance, $uploadFolder)
 	{
 		$upFile = $this->request->getUploadedFile('file');
 		if(!is_array($upFile['name'])){
@@ -101,11 +108,18 @@ class TimelineApiController extends ApiController {
 		} catch(\OCP\SystemTag\TagNotFoundException $e) {
 			$tagIds['tl:instance'] = $this->systemTagManager->createTag('tl:'.$instance, true, true)->getId();
 		}
+		// Grab the folder
+		$folder = $this->userFolder->get($uploadFolder);
+		if(!$folder){
+			return new JSONResponse('', \OCP\AppFramework\Http::STATUS_NOT_FOUND);
+		} else if($folder->isCreatable() == false) {
+			return new JSONResponse('', \OCP\AppFramework\Http::STATUS_FORBIDDEN);
+		}
 		// Create files
 		$ret = [];
 		for ($i=0; $i < count($upFile['name']); $i++) {
-			$name = $this->userFolder->getNonExistingName($upFile['name'][$i]);
-			$nfile = $this->userFolder->newFile($name);
+			$name = $folder->getNonExistingName($upFile['name'][$i]);
+			$nfile = $folder->newFile($name);
 			$nfile->putContent(file_get_contents($upFile['tmp_name'][$i]));
 			
 			$this->systemTagObjectMapper->assignTags($nfile->getId(), 'files', $tagIds);

@@ -6,5 +6,6 @@
 	</div>
 	<div id="app-settings-content">
 		<!-- Your settings in here -->
+		<input id="uploadFolder" type="text" value="" />
 	</div>
 </div>

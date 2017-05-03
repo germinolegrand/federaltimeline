@@ -218,6 +218,7 @@ function onButtonAddFile(button) {
 		}
 		fd.append("date", Math.floor(dateInstance.dataset.date/1000));
 		fd.append("instance", dateInstance.dataset.instance);
+		fd.append("uploadFolder", document.querySelector('#uploadFolder').value);
 		postTimelineFileUpload(fd);
 		this.value = "";
 	});
@@ -246,6 +247,8 @@ $().ready(function() {
 			appendUntaggedFile(untaggedFiles[i]['di_date']*1000, untaggedFiles[i]['di_instance'], untaggedFiles[i]['name'], untaggedFiles[i]['id']);
 		}
 		updateUntaggedCount();
+		var uploadFolder = data['uploadFolder'];
+		document.querySelector('#uploadFolder').value = uploadFolder;
 	});
 
 	$('#tlUpload').on('submit', function(e) {
@@ -254,6 +257,7 @@ $().ready(function() {
 		fd.set('date', convertDateFromView(fd.get('date')));
 		fd.set('name', $('#tlUpload input[type="file"]')[0].value);
 		var files = $('#tlUpload input[type="file"]')[0].files;
+		fd.append("uploadFolder", document.querySelector('#uploadFolder').value);
 		postTimelineFileUpload(fd);
 	});
 
