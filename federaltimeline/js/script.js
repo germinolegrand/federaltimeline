@@ -149,8 +149,8 @@ function filterByDateInstance(filterExp) {
 
 /*
 * @param FormData fd
-* @param Function (doneCallback)
-* @param Function (failCallback)
+* @param Function doneCallback()
+* @param Function failCallback()
 */
 function postTimelineFileTags(fd, doneCallback, failCallback) {
 	$.ajax('api/1.0/file/tags', {
@@ -174,6 +174,10 @@ function postTimelineFileUpload(fd) {
 		for (var i = 0; i < data.length; i++) {
 			appendFile(fd.get('date')*1000, fd.get('instance'), data[i]['name'], data[i]['id']);
 		}
+		// Clear input file
+		$inputFile = $('#tlUpload input[type="file"]');
+		$inputFile.wrap('<form>').closest('form').get(0).reset();
+		$inputFile.unwrap();
 	});
 }
 
@@ -225,7 +229,7 @@ function updateUntaggedCount() {
 	var untaggedCount = document.querySelectorAll('#untagged-list .untagged-file').length;
 	document.querySelector('.untagged-count').textContent = untaggedCount;
 	if(untaggedCount == 0){
-		document.querySelector('.show-untagged').setAttribute('disabled');
+		document.querySelector('.show-untagged').setAttribute('disabled', 'true');
 	} else {
 		document.querySelector('.show-untagged').removeAttribute('disabled');
 	}

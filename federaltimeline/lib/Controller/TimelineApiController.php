@@ -23,7 +23,7 @@ class TimelineApiController extends ApiController {
 	}
 
 	/**
-	 * 
+	 * @NoAdminRequired
 	 */
 	public function index() {
 		$tlTag = $this->systemTagManager->getTag('timeline', true, true);
@@ -48,15 +48,18 @@ class TimelineApiController extends ApiController {
 				}
 				$di['tags'][] = $tag->getName();
 			}
-			foreach ($this->userFolder->getById($tlo) as $file) {
-				$di['id'] = $file->getId();
-				$di['name'] = $file->getName();
-				$di['mimetype'] = $file->getMimetype();
-			}
-			if($di['di_date'] && $di['di_instance']){
-				$dateInstances[] = $di;
-			} else {
-				$untaggedFiles[] = $di;
+			$files = $this->userFolder->getById($tlo);
+			if(count($files)){
+				foreach ($files as $file) {
+					$di['id'] = $file->getId();
+					$di['name'] = $file->getName();
+					$di['mimetype'] = $file->getMimetype();
+				}
+				if($di['di_date'] && $di['di_instance']){
+					$dateInstances[] = $di;
+				} else {
+					$untaggedFiles[] = $di;
+				}
 			}
 		}
 		return [
@@ -66,6 +69,7 @@ class TimelineApiController extends ApiController {
 	}
 
 	/**
+	 * @NoAdminRequired
 	 * @param $date
 	 * @param $instance
 	 */
@@ -115,6 +119,7 @@ class TimelineApiController extends ApiController {
 	}
 
 	/**
+	 * @NoAdminRequired
 	 * @param int $fileId
 	 */
 	public function downloadFile($fileId)
@@ -129,6 +134,7 @@ class TimelineApiController extends ApiController {
 	}
 
 	/**
+	 * @NoAdminRequired
 	 * @param int $fileId
 	 * @param $date
 	 * @param $instance
