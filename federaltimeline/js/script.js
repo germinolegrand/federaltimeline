@@ -80,8 +80,9 @@ function appendFile(date, instance, fileName, fileId) {
 	var fileElem = document.createElement("div");
 	fileElem.classList.add("file");
 	fileElem.dataset.fileid = fileId;
-	fileElem.innerHTML = '<a href="#"><i class="icon-file" aria-hidden="true"></i>'+fileName+'</a>';
-	fileElem.addEventListener('click', function() {
+	fileElem.innerHTML = '<a href="../files?fileid='+fileId+'"><i class="icon-file" aria-hidden="true"></i>'+fileName+'</a>';
+	fileElem.querySelector('a').addEventListener('click', function(e) {
+		e.preventDefault();
 		getTimelineFileDownload(fileId);
 	});
 	filesFlexElem.prepend(fileElem);
@@ -259,5 +260,4 @@ $().ready(function() {
 	document.querySelector('.show-untagged').addEventListener('click', function() {
 		document.querySelector('#untagged-list').classList.toggle('show');
 	});
-
 });

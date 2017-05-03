@@ -5,8 +5,8 @@
 }
 
 #instance-filter {
-	width: calc(100% - 1em);
 	position: relative;
+	width: calc(100% - 1em);
 }
 
 /*app-content*/
