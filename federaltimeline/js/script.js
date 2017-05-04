@@ -91,11 +91,13 @@ function appendFile(date, instance, fileName, fileId) {
 }
 
 function appendUntaggedFile(date, instance, fileName, fileId) {
+	date = date > 0 ? convertDateToView(date) : '';
+	instance = instance === undefined ? '' : instance;
 	var untaggedFile = document.createElement('form');
 	untaggedFile.classList.add("untagged-file");
 	untaggedFile.dataset.fileid = fileId;
-	untaggedFile.innerHTML = '<input type="text" pattern="(0[1-9]|1[0-9]|2[0-9]|3[01]).(0[1-9]|1[012]).[0-9]{4}" name="date" placeholder="DD/MM/YYYY" required />'
-		+ '<input type="text" name="instance" list="inputInstanceList" placeholder="Instance" required />'
+	untaggedFile.innerHTML = '<input type="text" pattern="(0[1-9]|1[0-9]|2[0-9]|3[01]).(0[1-9]|1[012]).[0-9]{4}" name="date" placeholder="DD/MM/YYYY" required value="'+date+'" />'
+		+ '<input type="text" name="instance" list="inputInstanceList" placeholder="Instance" required value="'+instance+'" />'
 		+ '<a href="#" class="file"><i class="icon-file" aria-hidden="true"></i>'+fileName+'</a>'
 		+ '<input class="icon-checkmark" type="submit" name="submit" value="" />';
 	untaggedFile.querySelector('a').addEventListener('click', function() {
