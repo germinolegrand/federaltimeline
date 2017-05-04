@@ -31,6 +31,37 @@
 	margin: 3px 3px 3px 0;
 }
 
+#tlUpload input[type="file"].whole-page {
+	position: fixed;
+	left: -50vw;
+	top: -50vh;
+	width: 200vw;
+	height: 200vh;
+	z-index: 10000;
+	opacity: 0;
+}
+
+#tlUpload input[type="file"] + span:before {
+	content: " ";
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: calc(100vw - 2em);
+	height: calc(100vh - 2em);
+	background-color: transparent;
+	border: dashed 1em darkgreen;
+	border-radius: 1em;
+	z-index: 9999;
+	transition: opacity ease 0.3s;
+	opacity: 0;
+	visibility: hidden;
+}
+
+#tlUpload input[type="file"].whole-page + span:before {
+	opacity: 1;
+	visibility: visible;
+}
+
 #untagged-list {
 	overflow: auto;
 	max-height: 0;

@@ -83,7 +83,7 @@ function appendFile(date, instance, fileName, fileId) {
 	fileElem.innerHTML = '<a href="../files?fileid='+fileId+'"><i class="icon-file" aria-hidden="true"></i>'+fileName+'</a>';
 	fileElem.querySelector('a').addEventListener('click', function(e) {
 		e.preventDefault();
-		getTimelineFileDownload(fileId);
+		getTimelineFileDownload(fileId, fileName);
 	});
 	filesFlexElem.prepend(fileElem);
 	// update input
@@ -99,7 +99,7 @@ function appendUntaggedFile(date, instance, fileName, fileId) {
 		+ '<a href="#" class="file"><i class="icon-file" aria-hidden="true"></i>'+fileName+'</a>'
 		+ '<input class="icon-checkmark" type="submit" name="submit" value="" />';
 	untaggedFile.querySelector('a').addEventListener('click', function() {
-		getTimelineFileDownload(fileId);
+		getTimelineFileDownload(fileId, fileName);
 	});
 	untaggedFile.addEventListener('submit', function(e) {
 		e.preventDefault();
@@ -183,8 +183,9 @@ function postTimelineFileUpload(fd) {
 
 /*
 * @param int fileId
+* @param fileName
 */
-function getTimelineFileDownload(fileId) {
+function getTimelineFileDownload(fileId, fileName) {
 	var req = new XMLHttpRequest();
 	req.open("GET", "api/1.0/file?fileId="+fileId, true);
 	req.responseType = "blob";
@@ -195,11 +196,14 @@ function getTimelineFileDownload(fileId) {
 		var link=document.createElement('a');
 		document.body.appendChild(link);
 		link.href=window.URL.createObjectURL(blob);
-		var filename = '';
-		var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-        var matches = filenameRegex.exec(req.getResponseHeader('Content-Disposition'));
-        if (matches !== null && matches[1]) filename = matches[1].replace(/['"]/g, '');
-		link.download = filename;
+		// var filename = '';
+		// var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+	    // var matches = filenameRegex.exec(req.getResponseHeader('Content-Disposition'));
+	    // if (matches !== null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+	    // console.log(req.getResponseHeader('Content-Disposition'));
+	    // console.log(filename);
+	    // console.log(matches);
+		link.download = fileName;
 		link.click();
 	};
 
@@ -251,6 +255,7 @@ $().ready(function() {
 		document.querySelector('#uploadFolder').value = uploadFolder;
 	});
 
+	// Use jQuery for cross-browser compatibility with input multiple files
 	$('#tlUpload').on('submit', function(e) {
 		e.preventDefault();
 		var fd = new FormData(this);
@@ -267,5 +272,19 @@ $().ready(function() {
 
 	document.querySelector('.show-untagged').addEventListener('click', function() {
 		document.querySelector('#untagged-list').classList.toggle('show');
+	});
+
+	document.querySelector('body').addEventListener('dragenter', function(e) {
+		e.preventDefault();
+		if(!document.querySelector('#tlUpload input[type="file"]').classList.contains('whole-page')){
+			document.querySelector('#tlUpload input[type="file"]').classList.add('whole-page');
+		}
+	});
+	document.querySelector('body').addEventListener('drop', function(e) {
+		document.querySelector('#tlUpload input[type="file"]').classList.remove('whole-page');
+	});
+	document.querySelector('#tlUpload input[type="file"]').addEventListener('dragleave', function(e) {
+		e.preventDefault();
+		document.querySelector('#tlUpload input[type="file"]').classList.remove('whole-page');
 	});
 });
