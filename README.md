@@ -1,6 +1,11 @@
 # Federal Timeline
 Place this app in **nextcloud/apps/**
 
+No further steps required (except activating the app in the Admin panel).
+
+## UNLICENCE or COPYING ?
+COPYING only applies to ```/Makefile``` because it is from the default app skeleton. All the rest belongs to me, you, and anyone who cares, and is released into public domain via UNLICENCE.
+
 ## Building the app
 
 The app can be built by using the provided Makefile by running:
