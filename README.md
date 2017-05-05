@@ -3,6 +3,8 @@ Place this app in **nextcloud/apps/**
 
 No further steps required (except activating the app in the Admin panel).
 
+The aim of this app is to make it easier for organized federations to view and sort through all their documents in a chronological and bureaucratic way, that is classified by the relevant instance (secretariats, committees, ...). It has yet to be translated in english and other languages, for now it is french only.
+
 ## UNLICENCE or COPYING ?
 COPYING only applies to ```/Makefile``` because it is from the default app skeleton. All the rest belongs to me, you, and anyone who cares, and is released into public domain via UNLICENCE.
 
